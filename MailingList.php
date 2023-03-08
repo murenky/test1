@@ -15,8 +15,8 @@ class MailingList
     }
     
     /**
-     * Загружает пользователей из CSV файла
-     * @param string $file путь к csv файлу
+     * Р—Р°РіСЂСѓР¶Р°РµС‚ СЋР·РµСЂРѕРІ РёР· CSV С„Р°Р№Р»Р°
+     * @param string $file РїСѓС‚СЊ Рє csv С„Р°Р№Р»Сѓ
      * @throws Exception
      */
     public function loadUsers(string $file): void
@@ -32,16 +32,16 @@ class MailingList
             $name = trim($data[1]);
             $res = $stmt->execute(['number' => $number, 'name' => $name, 'name2' => $name]);
             if (!$res) {
-                // 
+                // Р·РґРµСЃСЊ Р±С‹ РЅР°РґРѕ РґРѕР±Р°РІРёС‚СЊ РѕР±СЂР°Р±РѕС‚РєСѓ РѕС€РёР±РѕС‡РЅС‹С… СЃС‚СЂРѕРє, РЅРѕ РІ Р·Р°РґР°РЅРёРё РЅРµ РѕРіРѕРІРѕСЂРµРЅРѕ
                 null;
             }
         }
     }
     
     /**
-     * Добавляет новую рассылку
-     * @param string $name имя
-     * @param string $template шаблон сообщения
+     * Р”РѕР±Р°РІР»СЏРµС‚ РЅРѕРІСѓСЋ СЂР°СЃСЃС‹Р»РєСѓ
+     * @param string $name РёРјСЏ
+     * @param string $template С€Р°Р±Р»РѕРЅ СЃРѕРѕР±С‰РµРЅРёСЏ
      */
     public function addMailingList(string $name, string $template): void
     {
@@ -50,8 +50,8 @@ class MailingList
     }
     
     /**
-     * Запускает рассылку
-     * @param string $name имя рассылки, которую необходимо запусить
+     * Р—Р°РїСѓСЃРєР°РµС‚ СЂР°СЃСЃС‹Р»РєСѓ РїРѕ РёРјРµРЅРё
+     * @param string $name РёРјСЏ СЂР°СЃСЃС‹Р»РєРё, РєРѕС‚РѕСЂСѓСЋ С‚СЂРµР±СѓРµС‚СЃСЏ Р·Р°РїСѓСЃС‚РёС‚СЊ
      * @throws ErrorException
      */
     public function startMailingList(string $name): void
@@ -61,18 +61,16 @@ class MailingList
         $mlStmt->execute(['name' => $name]);
         $mailingList = $mlStmt->fetch(PDO::FETCH_ASSOC);
         
-        // рассылка не найдена
+        // СЂР°СЃСЃС‹Р»РєР° РЅРµ РЅР°Р№РґРµРЅР°
         if (!$mailingList) {
             throw new ErrorException('Mailing list not found.');
         }
         
-        // рассылка уже завершена
+        // СЂР°СЃСЃС‹Р»РєР° СѓР¶Рµ РѕС‚РїСЂР°РІР»РµРЅР°
         if ($mailingList['finished'] == 1) {
             throw new ErrorException('This mailing list already sent.');
         }
         
-        // получаем список пользователей по возрастанию номеров,
-        // начиная с последнего отправленного (или весь, если ничего не отправлялось)
         $usersStmt = $this->conn->prepare('SELECT * FROM users WHERE number > :last ORDER BY number');
         $usersStmt->execute(['last' => $mailingList['last_sent']]);
         
@@ -81,32 +79,32 @@ class MailingList
         while ($user = $usersStmt->fetch(PDO::FETCH_ASSOC)) {
             $text = preg_replace('/%name%/', $user['name'], $mailingList['template']);
             $this->sendMessage($user['number'], $text);
-            // пишем в БД последний номер, на который было отправлено сообщение
+            // РѕР±РЅРѕРІР»СЏРµРј СЂР°СЃСЃС‹Р»РєСѓ, РїРёС€РµРј РїРѕСЃР»РµРґРЅРёР№ СѓСЃРїРµС€РЅРѕ РѕС‚РїСЂР°РІР»РµРЅРЅС‹Р№ РЅРѕРјРµСЂ
             $updateStmt->execute(['number' => $user['number'], 'finished' => 0, 'name' => $mailingList['name']]);
         }
         
-        // помечаем рассылку как отправленную
+        // РїРѕРјРµС‡Р°РµРј СЂР°СЃСЃС‹Р»РєСѓ РєР°Рє РѕР±СЂР°Р±РѕС‚Р°РЅРЅСѓСЋ
         $updateStmt->execute(['number' => '', 'finished' => 1, 'name' => $mailingList['name']]);
     }
     
     /**
-     * Отправляем сообщение в очередь
-     * @param string $number номер
-     * @param string $text текст сообщения
+     * РћС‚РїСЂР°РІР»СЏРµС‚ СЃРѕРѕР±С‰РµРЅРёРµ РІ РѕС‡РµСЂРµРґСЊ
+     * @param string $number РЅРѕРјРµСЂ
+     * @param string $text С‚РµРєСЃС‚ СЃРѕРѕР±С‰РµРЅРёСЏ
      */
     private function sendMessage(string $number, string $text): void
     {
-        // код-заглушка, вместо реальной отправки
+        // РєРѕРґ-Р·Р°РіР»СѓС€РєР°, РІРјРµСЃС‚Рѕ СЂРµР°Р»СЊРЅРѕР№ РѕС‚РїСЂР°РІРєРё СЃРѕРѕР±С‰РµРЅРёСЏ РІ РѕС‡РµСЂРµРґСЊ
         echo "To $number: $text\n";
     }
     
     /**
-     * Подключение к MySQL
+     * РџРѕРґРєР»СЋС‡РµРЅРёРµ Рє MySQL
      */
     private function connectToDB(): void
     {
-        // да, по-хорошему надо создание подключения выносить в отдельный класс, а параметры в конфиг
-        // но это всё наживное, а пока пусть будет так
+        // РґР°, РїРѕ-С…РѕСЂРѕС€РµРјСѓ, РїРѕРґРєР»СЋС‡РµРЅРёРµ РЅР°РґРѕ РІС‹РЅРѕСЃРёС‚СЊ РІ РѕС‚РґРµР»СЊРЅС‹Р№ РєР»Р°СЃСЃ, Р° РїР°СЂР°РјРµС‚СЂС‹ РІ РєРѕРЅС„РёРі
+        // РЅРѕ СЌС‚Рѕ РґРµР»Рѕ РЅР°Р¶РёРІРЅРѕРµ, Р° РїРѕРєР° РїСѓСЃС‚СЊ Р±СѓРґРµС‚ С‚Р°Рє
         $dsn = 'mysql:host=localhost;dbname=test';
         $user = 'test';
         $pass = 'password';
